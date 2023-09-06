@@ -22,3 +22,7 @@ go.work
 
 # idea
 .idea/
+
+book-code-archive
+
+.DS_Store
