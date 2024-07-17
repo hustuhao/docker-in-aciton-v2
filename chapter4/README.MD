@@ -277,3 +277,139 @@ https://forums.docker.com/t/host-path-of-volume/12277
 
 https://forums.docker.com/t/where-is-docker-volume-in-mac/134145
 
+https://stackoverflow.com/questions/38532483/where-is-var-lib-docker-on-mac-os-x
+
+
+利用数据卷容器来备份、恢复、迁移数据卷
+
+--volumes-from 标识选项
+```shell
+docker run --name fowler \
+    --mount type=volume,dst=/library/PoEAA \
+    --mount type=volume,src=/library/DSL \
+    alpine:latest \
+    echo "Fpwler collection created"
+docker run --name knuth \
+    --mount type=volume,dst=/library/TAoCP.vol1 \
+    --mount type=volume,dst=/library/TAoCP.vol2 \
+    --mount type=volume,dst=/library/TAoCP.vol3 \
+    --mount type=volume,dst=/library/TAoCP.vol4.a \
+    alpine:latest \
+    echo "Knuth collection created"
+
+docker run --name reader \
+    --volumes-from fowler \
+    --volumes-from knuth \
+    alpine:lastest ls -l /library/
+
+docker inspect --format "{{json .Mounts}" reader
+```
+
+执行命令后报错：invalid argument "type=volume,src=/library/DSL" for "--mount" flag: target is required
+
+应该是命令参数有变化。
+
+修改后的命令：
+```shell
+
+docker run --name fowler \
+    --mount type=volume,source=fowler_vol1,target=/library/PoEAA \
+    --mount type=volume,source=fowler_vol2,target=/library/DSL \
+    alpine:latest \
+    echo "Fowler collection created"
+
+
+docker run --name knuth \
+    --mount type=volume,source=taocp_vol1,target=/library/TAoCP.vol1 \
+    --mount type=volume,source=taocp_vol2,target=/library/TAoCP.vol2 \
+    --mount type=volume,source=taocp_vol3,target=/library/TAoCP.vol3 \
+    --mount type=volume,source=taocp_vol4a,target=/library/TAoCP.vol4.a \
+    alpine:latest \
+    echo "Knuth collection created"
+
+docker run --name reader \
+    --volumes-from fowler \
+    --volumes-from knuth \
+    alpine:latest ls -l /library/
+
+
+# 输出：可以看到 reader 容器中的 /library/ 目录下包含了所有挂载的卷。
+total 24
+drwxr-xr-x    2 root     root          4096 Jul 13 14:36 DSL
+drwxr-xr-x    2 root     root          4096 Jul 13 14:36 PoEAA
+drwxr-xr-x    2 root     root          4096 Jul 13 14:39 TAoCP.vol1
+drwxr-xr-x    2 root     root          4096 Jul 13 14:39 TAoCP.vol2
+drwxr-xr-x    2 root     root          4096 Jul 13 14:39 TAoCP.vol3
+drwxr-xr-x    2 root     root          4096 Jul 13 14:39 TAoCP.vol4.a
+
+docker inspect --format "{{json .Mounts}}" reader
+# 输出：
+[
+    {
+        "Type": "volume",
+        "Name": "taocp_vol3",
+        "Source": "/var/lib/docker/volumes/taocp_vol3/_data",
+        "Destination": "/library/TAoCP.vol3",
+        "Driver": "local",
+        "Mode": "",
+        "RW": true,
+        "Propagation": ""
+    },
+    {
+        "Type": "volume",
+        "Name": "taocp_vol4a",
+        "Source": "/var/lib/docker/volumes/taocp_vol4a/_data",
+        "Destination": "/library/TAoCP.vol4.a",
+        "Driver": "local",
+        "Mode": "",
+        "RW": true,
+        "Propagation": ""
+    },
+    {
+        "Type": "volume",
+        "Name": "fowler_vol1",
+        "Source": "/var/lib/docker/volumes/fowler_vol1/_data",
+        "Destination": "/library/PoEAA",
+        "Driver": "local",
+        "Mode": "",
+        "RW": true,
+        "Propagation": ""
+    },
+    {
+        "Type": "volume",
+        "Name": "fowler_vol2",
+        "Source": "/var/lib/docker/volumes/fowler_vol2/_data",
+        "Destination": "/library/DSL",
+        "Driver": "local",
+        "Mode": "",
+        "RW": true,
+        "Propagation": ""
+    },
+    {
+        "Type": "volume",
+        "Name": "taocp_vol1",
+        "Source": "/var/lib/docker/volumes/taocp_vol1/_data",
+        "Destination": "/library/TAoCP.vol1",
+        "Driver": "local",
+        "Mode": "",
+        "RW": true,
+        "Propagation": ""
+    },
+    {
+        "Type": "volume",
+        "Name": "taocp_vol2",
+        "Source": "/var/lib/docker/volumes/taocp_vol2/_data",
+        "Destination": "/library/TAoCP.vol2",
+        "Driver": "local",
+        "Mode": "",
+        "RW": true,
+        "Propagation": ""
+    }
+]
+
+
+```
+
+
+数据卷容器
+https://jiajially.gitbooks.io/dockerguide/content/chapter_fastlearn/docker_run/--volumes-from.html
