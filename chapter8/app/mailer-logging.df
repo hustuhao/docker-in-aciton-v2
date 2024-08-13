@@ -1,0 +1,20 @@
+# 指定基础镜像
+FROM dockerinaction/mailer-base:0.6
+RUN apt-get update && \
+    apt-get install -y netcat 
+
+# 拷贝 log-impl 目录到镜像中的${APPROOT}目录
+COPY ["./log-impl", "${APPROOT}"]
+
+# 修改文件权限：（COPY指令在复制完后，文件的所有权限会被重置为 root）
+RUN chmod a+x ${APPROOT}/${APP} && \
+    chown example:example /var/log
+
+# 设置镜像的用户和用户组
+USER example:example
+
+# 为镜像的 /var/log 目录创建一个卷，
+VOLUME ["/var/log"]
+# 设执行 mailer 应用的默认命令
+CMD ["/var/log/mailer.log"]
+
