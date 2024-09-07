@@ -1,4 +1,4 @@
-# docker build -t my-neovim-dev my-neovim-dev.dockerfile .
+# docker build -t my-neovim-dev:v0.0.1 -f my-neovim-dev_arm64.dockerfile .
 # Use Ubuntu as the base image
 FROM --platform=linux/arm64 ubuntu:22.04
 
