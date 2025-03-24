@@ -1,11 +1,13 @@
 # docker build -t my-neovim-dev:v0.0.1 -f my-neovim-dev.dockerfile .
 # Use Ubuntu as the base image
-FROM --platform=linux/arm64 ubuntu:24.04
+FROM --platform=linux/amd64 ubuntu:24.04
 
 # Set environment variables for mirrors
 ENV DEBIAN_FRONTEND=noninteractive
+# ENV UBUNTU_MIRROR=https://mirrors.aliyun.com
+# ENV UBUNTU_DEFAULT_MIRROR=http://ports.ubuntu.com
 ENV UBUNTU_MIRROR=https://mirrors.aliyun.com
-ENV UBUNTU_DEFAULT_MIRROR=http://ports.ubuntu.com
+ENV UBUNTU_DEFAULT_MIRROR=http://archive.ubuntu.com
 ENV PYTHON_VERSION=3.12.5
 ENV GO_VERSION=1.22.6
 ENV JAVA_VERSION=openjdk-22.0.2
@@ -41,7 +43,13 @@ RUN apt-get update && apt-get install -y ca-certificates  && \
 	cmake \
 	g++ \
 	pkg-config \
-	doxygen && \
+	doxygen \
+	libreadline-dev \
+	libssl-dev \
+	gdb \
+	valgrind \
+	libcurl4-openssl-dev \
+	libncurses5-dev && \	
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
@@ -61,16 +69,17 @@ RUN wget https://mirrors.aliyun.com/python-release/source/Python-${PYTHON_VERSIO
 	cd .. && \
 	rm -rf Python-${PYTHON_VERSION} Python-${PYTHON_VERSION}.tgz
 
+
 # Install Go
-RUN wget https://mirrors.aliyun.com/golang/go${GO_VERSION}.linux-arm64.tar.gz && \
-	tar -C /usr/local -xzf go${GO_VERSION}.linux-arm64.tar.gz && \
-	rm go${GO_VERSION}.linux-arm64.tar.gz && \
+RUN wget https://mirrors.aliyun.com/golang/go${GO_VERSION}.linux-amd64.tar.gz && \
+	tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz && \
+	rm go${GO_VERSION}.linux-amd64.tar.gz && \
 	ln -s /usr/local/go/bin/go /usr/bin/go
 
 # Install OpenJDK 22
-RUN wget --no-check-certificate https://d6.injdk.cn/openjdk/openjdk/22/${JAVA_VERSION}_linux-aarch64_bin.tar.gz && \
-	tar -xzf ${JAVA_VERSION}_linux-aarch64_bin.tar.gz -C /usr/local && \
-	rm ${JAVA_VERSION}_linux-aarch64_bin.tar.gz
+RUN wget --no-check-certificate https://d6.injdk.cn/openjdk/openjdk/22/${JAVA_VERSION}_linux-x64_bin.tar.gz && \
+	tar -xzf ${JAVA_VERSION}_linux-x64_bin.tar.gz -C /usr/local && \
+	rm ${JAVA_VERSION}_linux-x64_bin.tar.gz
 
 # Set Java environment variables
 ENV JAVA_HOME="/usr/local/jdk-22.0.2"
@@ -88,7 +97,7 @@ RUN wget https://www.lua.org/ftp/lua-${LUA_VERSION}.tar.gz && \
 	rm -rf lua-${LUA_VERSION}*
 
 # Install Node.js
-RUN curl -fsSL https://mirrors.tuna.tsinghua.edu.cn/nodejs-release/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-arm64.tar.xz | tar -xJf - -C /usr/local --strip-components=1
+RUN curl -fsSL https://mirrors.tuna.tsinghua.edu.cn/nodejs-release/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz | tar -xJf - -C /usr/local --strip-components=1
 
 # Install Neovim from source
 RUN git clone https://github.com/neovim/neovim && \
