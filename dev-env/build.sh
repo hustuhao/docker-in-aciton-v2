@@ -3,7 +3,7 @@
 
 # 从环境变量中读取配置
 IMAGE_NAME=${IMAGE_NAME:-$1}
-DOCKERFILE=${DOCKERFILE:-"Dockerfile"}
+DOCKERFILE=${DOCKERFILE:-"DockerfileV3.df"}
 REMOTE_HOSTS_URL=${REMOTE_HOSTS_URL:-"https://hosts.gitcdn.top/hosts.txt"}
 TEMP_HOSTS_FILE=${TEMP_HOSTS_FILE:-"./temp_hosts"}
 BUILD_GITHUB_MIRROR_URL=${BUILD_GITHUB_MIRROR_URL:-"https://ghfast.top/https://github.com"}
@@ -15,6 +15,8 @@ ALIYUN_PASSWORD=${ALIYUN_DOCKER_PASSWORD:-"your_pwd"}
 
 # 根据环境变量生成镜像完整标签
 ALIYUN_IMAGE_TAG="$ALIYUN_REGISTRY/$ALIYUN_NAMESPACE/$ALIYUN_REPO_NAME:$IMAGE_NAME"
+
+ROOT_PASSWORD=${IMAGE_ROOT_PASSWORD:-"rootpassword"}
 
 # 更新 hosts 文件
 update_hosts_file() {
@@ -33,7 +35,7 @@ update_hosts_file() {
 # 构建 Docker 镜像
 build_docker_image() {
 	echo "Building Docker image..."
-	docker build --build-arg HOSTS_FILE=$TEMP_HOSTS_FILE --build-arg GIT_HUB_MIRROR_URL=$BUILD_GITHUB_MIRROR_URL -t $IMAGE_NAME -f $DOCKERFILE .
+	docker build --build-arg HOSTS_FILE=$TEMP_HOSTS_FILE --build-arg GIT_HUB_MIRROR_URL=$BUILD_GITHUB_MIRROR_URL --build-arg ROOT_PASSWORD=$ROOT_PASSWORD -t $IMAGE_NAME -f $DOCKERFILE .
 
 	if [ $? -eq 0 ]; then
 		echo "Docker image $IMAGE_NAME built successfully!"
