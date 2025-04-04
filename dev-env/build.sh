@@ -2,7 +2,7 @@
 # 用法 bash build.sh v0.0.3
 
 # 从环境变量中读取配置
-DOCKERFILE=${DOCKERFILE:-"DockerfileV4.df"}
+DOCKERFILE=${DOCKERFILE:-"DockerfileV5.df"}
 REMOTE_HOSTS_URL=${REMOTE_HOSTS_URL:-"https://hosts.gitcdn.top/hosts.txt"}
 TEMP_HOSTS_FILE=${TEMP_HOSTS_FILE:-"./temp_hosts"}
 BUILD_GITHUB_MIRROR_URL=${BUILD_GITHUB_MIRROR_URL:-"https://ghfast.top/https://github.com"}

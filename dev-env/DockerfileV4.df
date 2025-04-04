@@ -1,0 +1,147 @@
+# ---------- Base Stage ----------
+FROM --platform=linux/amd64 ubuntu:24.04 AS base
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive \
+	UBUNTU_MIRROR=https://mirrors.aliyun.com \
+	UBUNTU_DEFAULT_MIRROR=http://archive.ubuntu.com \
+	PYTHON_VERSION=3.12.5 \
+	GO_VERSION=1.22.6 \
+	JAVA_VERSION=openjdk-22.0.2 \
+	LUA_VERSION=5.4.6 \
+	NODE_VERSION=16.20.2 \
+	NEOVIM_VERSION=v0.10.0 \
+	NERD_FONT_VERSION=2.3.3 \
+	LANG=en_US.UTF-8 \
+	TZ=Asia/Shanghai \
+	JAVA_HOME="/usr/local/jdk-22.0.2" \
+	PATH="/usr/local/go/bin:/usr/local/nvim/bin:$PATH" \
+	# 添加终端颜色支持
+	TERM=xterm-256color  
+# Update and install basic dependencies
+RUN sed -i "s|${UBUNTU_DEFAULT_MIRROR}|${UBUNTU_MIRROR}|g" /etc/apt/sources.list && \
+	apt-get update && apt-get install -y --no-install-recommends \
+	build-essential \
+	curl \
+	wget \
+	git \
+	ca-certificates \
+	gnupg \
+	lsb-release \
+	sudo \
+	unzip \
+	locales \
+	tzdata \
+	fontconfig \
+	ninja-build \
+	gettext \
+	libtool \
+	autoconf \
+	automake \
+	cmake \
+	g++ \
+	pkg-config \
+	doxygen \
+	libreadline-dev \
+	libssl-dev \
+	libcurl4-openssl-dev \
+	libncurses5-dev \
+	# 确保安装 coreutils 支持颜色输出
+	coreutils && \  
+	apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Set locale and timezone
+RUN locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && \
+	ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo "Asia/Shanghai" > /etc/timezone
+
+# ---------- Python Build Stage ----------
+FROM base AS python-builder
+
+# Install required dependencies for Python compilation
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	zlib1g-dev \
+	libssl-dev \
+	libreadline-dev \
+	libncurses5-dev \
+	libbz2-dev \
+	libsqlite3-dev \
+	libffi-dev \
+	liblzma-dev && \
+	apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN wget https://mirrors.aliyun.com/python-release/source/Python-${PYTHON_VERSION}.tgz && \
+	tar -xf Python-${PYTHON_VERSION}.tgz && cd Python-${PYTHON_VERSION} && \
+	./configure --enable-optimizations && make -j$(nproc) && make altinstall && \
+	cd .. && rm -rf Python-${PYTHON_VERSION}*
+
+# ---------- Go Build Stage ----------
+FROM base AS go-builder
+
+RUN wget https://mirrors.aliyun.com/golang/go${GO_VERSION}.linux-amd64.tar.gz && \
+	tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz && \
+	rm go${GO_VERSION}.linux-amd64.tar.gz
+
+# ---------- Java Build Stage ----------
+FROM base AS java-builder
+
+RUN wget --no-check-certificate https://d6.injdk.cn/openjdk/openjdk/22/${JAVA_VERSION}_linux-x64_bin.tar.gz && \
+	tar -xzf ${JAVA_VERSION}_linux-x64_bin.tar.gz -C /usr/local && \
+	rm ${JAVA_VERSION}_linux-x64_bin.tar.gz
+
+# ---------- Lua Build Stage ----------
+FROM base AS lua-builder
+
+RUN wget https://www.lua.org/ftp/lua-${LUA_VERSION}.tar.gz && \
+	tar -zxf lua-${LUA_VERSION}.tar.gz && cd lua-${LUA_VERSION} && \
+	make linux test && make install && cd .. && rm -rf lua-${LUA_VERSION}*
+
+# ---------- Node.js Build Stage ----------
+FROM base AS node-builder
+
+RUN curl -fsSL https://mirrors.tuna.tsinghua.edu.cn/nodejs-release/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz | \
+	tar -xJf - -C /usr/local --strip-components=1
+
+# ---------- Neovim Build Stage ----------
+FROM base AS neovim-builder
+
+RUN git clone https://github.com/neovim/neovim && \
+	cd neovim && git checkout ${NEOVIM_VERSION} && \
+	make CMAKE_BUILD_TYPE=Release && make install && \
+	cd .. && rm -rf neovim
+
+# ---------- Final Stage ----------
+FROM base AS final
+
+# Copy dependencies from previous stages
+COPY --from=python-builder /usr/local/bin/python3.12 /usr/local/bin/
+COPY --from=go-builder /usr/local/go /usr/local/go
+COPY --from=java-builder /usr/local/jdk-22.0.2 /usr/local/jdk-22.0.2
+COPY --from=lua-builder /usr/local/bin/lua /usr/local/bin/lua
+COPY --from=node-builder /usr/local /usr/local
+COPY --from=neovim-builder /usr/local/bin/nvim /usr/local/bin/nvim
+COPY --from=neovim-builder /usr/local/share/nvim /usr/local/share/nvim
+
+# Install Nerd Font
+RUN wget https://github.com/ryanoasis/nerd-fonts/releases/download/v${NERD_FONT_VERSION}/FiraCode.zip && \
+	unzip FiraCode.zip -d ~/.fonts && fc-cache -fv && rm FiraCode.zip
+
+# Set root password
+ARG ROOT_PASSWORD
+RUN echo "root:${ROOT_PASSWORD}" | chpasswd
+
+# Create a non-root user 'neovim'
+RUN groupadd -r neovim && useradd -r -g neovim -m -s /bin/bash neovim
+
+# Add color support in .bashrc for neovim user
+RUN echo "export TERM=xterm-256color" >> /home/neovim/.bashrc && \
+	echo "alias ls='ls --color=auto'" >> /home/neovim/.bashrc
+
+# Set the non-root user as the default user
+USER neovim
+
+# Clone Neovim configuration
+RUN git clone https://github.com/hustuhao/my-lazy-nvim.git ~/.config/nvim
+
+# Set default shell
+CMD ["/bin/bash"]
+
