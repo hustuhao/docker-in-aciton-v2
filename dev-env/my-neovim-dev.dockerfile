@@ -16,7 +16,7 @@ ENV NERD_FONT_VERSION=2.3.3
 
 # Update and install basic dependencies
 RUN apt-get update && apt-get install -y ca-certificates  && \
-	sed -i "s|${UBUNTU_DEFAULT_MIRROR}|${UBUNTU_MIRROR}|g" /etc/apt/sources.list && \
+	# sed -i "s|${UBUNTU_DEFAULT_MIRROR}|${UBUNTU_MIRROR}|g" /etc/apt/sources.list && \
 	echo "Updated /etc/apt/sources.list:" && cat /etc/apt/sources.list && \
 	apt-get update && apt-get install -y \
 	build-essential \

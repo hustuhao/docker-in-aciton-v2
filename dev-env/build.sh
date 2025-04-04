@@ -2,19 +2,23 @@
 # 用法 bash build.sh v0.0.3
 
 # 从环境变量中读取配置
-IMAGE_NAME=${IMAGE_NAME:-$1}
-DOCKERFILE=${DOCKERFILE:-"DockerfileV3.df"}
+DOCKERFILE=${DOCKERFILE:-"DockerfileV4.df"}
 REMOTE_HOSTS_URL=${REMOTE_HOSTS_URL:-"https://hosts.gitcdn.top/hosts.txt"}
 TEMP_HOSTS_FILE=${TEMP_HOSTS_FILE:-"./temp_hosts"}
 BUILD_GITHUB_MIRROR_URL=${BUILD_GITHUB_MIRROR_URL:-"https://ghfast.top/https://github.com"}
+BUILD_USE_CACHE=${BUILD_USE_CACHE:-"true"} # 默认使用缓存
+
 ALIYUN_REGISTRY=${ALIYUN_DOCKER_REGISTRY:-"registry.cn-hangzhou.aliyuncs.com"}
 ALIYUN_NAMESPACE=${ALIYUN_DOCKER_NAMESPACE_TURATO:-"turato"}
 ALIYUN_REPO_NAME=${ALIYUN_DOCKER_REPO_DEV:-"my-neovim-dev"}
 ALIYUN_USERNAME=${ALIYUN_DOCKER_USERNAME:-"your_username"}
 ALIYUN_PASSWORD=${ALIYUN_DOCKER_PASSWORD:-"your_pwd"}
 
+IMAGE_TAG=${IMAGE_TAG:-$1}
+IMAGE_NAME=$ALIYUN_REPO_NAME
+
 # 根据环境变量生成镜像完整标签
-ALIYUN_IMAGE_TAG="$ALIYUN_REGISTRY/$ALIYUN_NAMESPACE/$ALIYUN_REPO_NAME:$IMAGE_NAME"
+ALIYUN_IMAGE_TAG="$ALIYUN_REGISTRY/$ALIYUN_NAMESPACE/$ALIYUN_REPO_NAME:$IMAGE_TAG"
 
 ROOT_PASSWORD=${IMAGE_ROOT_PASSWORD:-"rootpassword"}
 
@@ -35,10 +39,15 @@ update_hosts_file() {
 # 构建 Docker 镜像
 build_docker_image() {
 	echo "Building Docker image..."
-	docker build --build-arg HOSTS_FILE=$TEMP_HOSTS_FILE --build-arg GIT_HUB_MIRROR_URL=$BUILD_GITHUB_MIRROR_URL --build-arg ROOT_PASSWORD=$ROOT_PASSWORD -t $IMAGE_NAME -f $DOCKERFILE .
+	echo "BUILD_USE_CACHE: $BUILD_USE_CACHE"
+	if [ "$BUILD_USE_CACHE" = "true" ]; then
+		docker build --build-arg HOSTS_FILE=$TEMP_HOSTS_FILE --build-arg GIT_HUB_MIRROR_URL=$BUILD_GITHUB_MIRROR_URL --build-arg ROOT_PASSWORD=$ROOT_PASSWORD -t $IMAGE_NAME:$IMAGE_TAG -f $DOCKERFILE .
+	else
+		docker build --no-cache --build-arg HOSTS_FILE=$TEMP_HOSTS_FILE --build-arg GIT_HUB_MIRROR_URL=$BUILD_GITHUB_MIRROR_URL --build-arg ROOT_PASSWORD=$ROOT_PASSWORD -t $IMAGE_NAME:$IMAGE_TAG -f $DOCKERFILE .
+	fi
 
 	if [ $? -eq 0 ]; then
-		echo "Docker image $IMAGE_NAME built successfully!"
+		echo "Docker image $IMAGE_NAME:$IMAGE_TAG built successfully!"
 	else
 		echo "Error: Docker image build failed."
 		exit 1
@@ -59,7 +68,7 @@ login_to_aliyun() {
 # 为镜像打标签
 tag_docker_image() {
 	echo "Tagging Docker image..."
-	docker tag $IMAGE_NAME $ALIYUN_IMAGE_TAG
+	docker tag $IMAGE_NAME:$IMAGE_TAG $ALIYUN_IMAGE_TAG
 
 	if [ $? -eq 0 ]; then
 		echo "Docker image tagged as $ALIYUN_IMAGE_TAG successfully!"

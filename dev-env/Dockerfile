@@ -1,4 +1,4 @@
-# docker build -t my-neovim-dev:v0.0.1 -f my-neovim-dev.dockerfile .
+Dockerfile # docker build -t my-neovim-dev:v0.0.1 -f my-neovim-dev.dockerfile .
 # Use Ubuntu as the base image
 FROM --platform=linux/amd64 ubuntu:24.04
 
@@ -21,35 +21,40 @@ RUN apt-get update && apt-get install -y ca-certificates  && \
 	sed -i "s|${UBUNTU_DEFAULT_MIRROR}|${UBUNTU_MIRROR}|g" /etc/apt/sources.list && \
 	echo "Updated /etc/apt/sources.list:" && cat /etc/apt/sources.list && \
 	apt-get update && apt-get install -y \
+	autoconf \
+	automake \
 	build-essential \
-	curl \
-	wget \
-	git \
 	ca-certificates \
+	cmake \
+	curl \
+	doxygen \
+	g++ \
+	gettext \
 	gnupg \
+	git \
+	gdb \
+	iputils-ping \
+	libreadline-dev \
+	libssl-dev \
+	libtool \
+	libtool-bin \
 	lsb-release \
+	libcurl4-openssl-dev \
+	libncurses5-dev \
+	lsof \
+	locales \
+	mycli \
+	net-tools \
+	openssh-client \
+	wget \
 	sudo \
 	unzip \
-	locales \
 	tzdata \
 	zlib1g-dev \
 	fontconfig \
 	ninja-build \
-	gettext \
-	libtool \
-	libtool-bin \
-	autoconf \
-	automake \
-	cmake \
-	g++ \
 	pkg-config \
-	doxygen \
-	libreadline-dev \
-	libssl-dev \
-	gdb \
-	valgrind \
-	libcurl4-openssl-dev \
-	libncurses5-dev && \	
+	valgrind && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
